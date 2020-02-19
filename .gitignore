@@ -1,0 +1,11 @@
+*.pyc
+*.pyo
+.idea/
+.cache/
+__pycache__/
+.env
+.tox
+*.egg-info/
+*.log
+*.pid
+*.sock

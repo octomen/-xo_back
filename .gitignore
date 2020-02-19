@@ -1,6 +1,7 @@
 *.pyc
 *.pyo
 .idea/
+venv/
 .cache/
 __pycache__/
 .env

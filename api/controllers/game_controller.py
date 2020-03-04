@@ -1,22 +1,34 @@
-from collections import Counter
-from itertools import chain
 from typing import List
 from uuid import uuid4
 from api.modules.main import storage
-
-X: str = 'x'
-O: str = 'o'
-N = None
+from api.modules.state import State, User, SignEnum
 
 
-def get_state(game_uid: str):
+def get_state(game_uid: str) -> State:
     return storage.get(game_uid)
 
 
 def create():
     game_uid = str(uuid4())
-    storage.set(game_uid, {'board': [[N] * 3 for _ in range(3)], X: str(uuid4()), O: str(uuid4())})
+    storage.set(game_uid, State())
     return get_state(game_uid)
+
+
+def join(game_uid, user_uid):
+    state = get_state(game_uid)
+
+    if state.is_connected(user_uid):
+        return state
+
+    user = User(user_uid)
+    if not state.x_user:
+        state.x_user = user
+    elif not state.y_user:
+        state.y_user = user
+    else:
+        raise Exception()
+
+    return state
 
 
 def move(game_uid: str, user_uid: str, point: tuple):
@@ -33,10 +45,3 @@ def move(game_uid: str, user_uid: str, point: tuple):
 
     board[x_point][y_point] = sign
     return get_state(game_uid)
-
-
-def get_current_sign(board: List[List]) -> str:
-    counter = Counter(chain(*board))
-    if counter.setdefault(X, 0) == counter.setdefault(O, 0):
-        return X
-    return O

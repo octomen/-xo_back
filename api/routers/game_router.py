@@ -1,6 +1,8 @@
 import asyncio
+import json
 from api.controllers import game_controller
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI
+from starlette.websockets import WebSocket
 
 app = FastAPI()
 
@@ -14,13 +16,13 @@ def create_game():
 async def game(websocket: WebSocket, game_uid: str, user_uid: str):
     await websocket.accept()
     state = game_controller.join(game_uid, user_uid)
-    await websocket.send_message(state)
+    await websocket.send_text(str(state))
     while True:
         if state.current_user_uid() == user_uid:
-            await websocket.send_message(game_controller.get_state(game_uid))
-            move = await websocket.recieve_message()
-            state = game_controller.move(game_uid, user_uid, move)
-            await websocket.send_message(state)
+            await websocket.send_text(str(game_controller.get_state(game_uid)))
+            move = await websocket.receive_text()
+            state = game_controller.move(game_uid, user_uid, json.loads(move))
+            await websocket.send_text(state)
         else:
             await asyncio.sleep(0.1)
 

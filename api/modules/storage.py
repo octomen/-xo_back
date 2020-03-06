@@ -1,8 +1,7 @@
 class DataSource:
 
     def __init__(self):
-        from api.modules.state import State
-        self.STORAGE = {'123': State()}
+        self.STORAGE = {}
 
     def get(self, key):
         if key not in self.STORAGE:
@@ -11,3 +10,4 @@ class DataSource:
 
     def set(self, key, value):
         self.STORAGE[key] = value
+        return value

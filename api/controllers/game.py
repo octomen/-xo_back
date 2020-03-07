@@ -17,11 +17,12 @@ class Game:
         self._board: Board = Board()
         self._board.on_state_change(self.state_notify)
 
-    # async def add_gamer(self, user: User):
-    #     await user.send('Connecting ...')
-    #     self._add_gamer(user)
+    async def add_gamer(self, user: User):
+        # await user.send('Connecting ...')
+        self._add_gamer(user)
+        await self.state_notify(self._board)
 
-    def add_gamer(self, user: User):
+    def _add_gamer(self, user: User):
         log.debug(self._gamers)
 
         if user in self._gamers:
@@ -58,8 +59,8 @@ class Game:
         except ValueError:
             pass
 
-    async def on_user_action(self, user: User, data: tuple):
-        await self._board.move(SignEnum.X if self._gamers.index(user) == 0 else SignEnum.O, data)
+    async def on_user_action(self, user: User, point: tuple):
+        await self._board.move(SignEnum.X if self._gamers.index(user) == 0 else SignEnum.O, point)
 
     async def state_notify(self, board: Board):
         await asyncio.wait([u.send(board.get_state()) for u in self._watchers])  # TODO: serialize board state

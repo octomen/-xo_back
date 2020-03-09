@@ -16,9 +16,9 @@ class Game:
         self._watchers: Set[User] = set()
         self._board: Board = Board()
         self._board.on_state_change(self.state_notify)
+        self._board.on_game_over(self.on_game_over)
 
     async def add_gamer(self, user: User):
-        # await user.send('Connecting ...')
         self._add_gamer(user)
         await self.state_notify(self._board)
 
@@ -64,6 +64,10 @@ class Game:
 
     async def state_notify(self, board: Board):
         await asyncio.wait([u.send(board.get_state()) for u in self._watchers])  # TODO: serialize board state
+
+    async def on_game_over(self, board: Board, sign, result):
+        msg = {'winner': sign if result is board.POSITIVE else 'nobody'}
+        await asyncio.wait([u.send(msg) for u in self._watchers])  # TODO: serialize board state
 
 
 def get_or_create(game_uid: str) -> Game:

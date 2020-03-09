@@ -29,12 +29,12 @@ class Board:
         self._movement_cnt += 1
         if self._movement_cnt > 8:
             await asyncio.wait([c(self, sign, self.TIE) for c in self._on_game_over])
-        if self._is_game_over(sign):
+        if self._is_winner(sign):
             await asyncio.wait([c(self, sign, self.POSITIVE) for c in self._on_game_over])
 
         await asyncio.wait([c(self) for c in self._on_state_change])
 
-    def _is_game_over(self, sign):
+    def _is_winner(self, sign):
         win_variations = [(0, 4, 8), (2, 4, 6), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 1, 2), (3, 4, 5), (6, 7, 8)]
         for v in win_variations:
             if all(self._board[p // 3][p % 3] is sign for p in v):

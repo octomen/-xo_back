@@ -4,6 +4,7 @@ import hashlib
 from typing import Callable
 
 from api.modules.socket import WebSocketProxy
+from . import Board
 
 log = logging.getLogger(__name__)
 

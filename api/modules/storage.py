@@ -4,7 +4,10 @@ class DataSource:
         self.STORAGE = {}
 
     def get(self, key):
-        return self.STORAGE.get(key)
+        if key not in self.STORAGE:
+            self.STORAGE[key] = {}
+        return self.STORAGE[key]
 
     def set(self, key, value):
         self.STORAGE[key] = value
+        return value

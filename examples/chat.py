@@ -1,29 +1,25 @@
 # -*- coding: utf-8 -*-
-from api.server.action import Action
-from api.server.schema import Entity, Schema
-from api.server.server import Server
+from api.server.action import ActionType, CREATE
+from api.server.schema import Entity, EntityType, Schema, METHOD, BIND
 
-SAY = Action('SAY')
+SAY = ActionType('SAY')
 
 
 class CHAT(Schema):
-    USER = Entity()
-    WATCHER = Entity()
+    USER: EntityType
+    WATCHER: EntityType
 
 
-schema = CHAT()
-
-
-@schema.ENTRYPOINT
-class Chat:
+@CHAT
+class _:
     def __init__(self):
         self.users = []
 
-    @schema.CREATE(schema.USER)
-    def new_user(self, entity):
+    @METHOD(CHAT.USER, actions=[CREATE])
+    def new_user(self, entity, _):
         self.users.append(entity)
 
-    @schema.METHOD(schema.USER, actions=[SAY])
+    @METHOD(CHAT.USER, actions=[SAY])
     async def say(self, entity: Entity, payload):
         for player in self.players:
             if player == entity:
@@ -31,17 +27,20 @@ class Chat:
             await player.emit(SAY(payload))
 
 
-@schema.WATCHER
+@CHAT.WATCHER
 class WatcherImplementation:
-    @schema.METHOD(schema.USER, actions=[SAY])
+    @METHOD(CHAT.USER, actions=[SAY])
     def notify(self, _: Entity, payload):
         self.entity.emit(SAY(payload))
 
 
-schema.BIND(schema.WATCHER, actions=[SAY])(print)
+BIND(CHAT.WATCHER, actions=[SAY])(print)
 
 
 if __name__ == '__main__':
-    server = Server()
-    server.register_schema(schema)
+    from api.server.server import Server
+    from api.server.process import ProcessStorage
+
+    server = Server(ProcessStorage())
+    server.register_schema(CHAT)
     server.run()

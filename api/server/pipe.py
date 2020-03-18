@@ -3,7 +3,7 @@ from itertools import count
 
 import typing
 
-from api.server.action import Action, ActionType, EmitData
+from api.server.action import Action, ActionType
 
 if typing.TYPE_CHECKING:
     from api.server.process import Process
@@ -20,7 +20,7 @@ class Pipe:
     def __repr__(self):
         return f'<Pipe id={self.id:!r}>'
 
-    async def emit(self, emit_data: EmitData):
+    async def emit(self, emit_data):
         await self._processor.emit(emit_data)
 
 

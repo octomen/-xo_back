@@ -10,6 +10,12 @@ class ActionType:
     def __repr__(self):
         return self.type_
 
+    def __eq__(self, other):
+        return self.type_ == other.self
+
+    def __call__(self, payload):
+        return Action(self, payload)
+
 
 class Action:
     def __init__(self, action_type: ActionType, payload):
@@ -17,7 +23,7 @@ class Action:
         self.ts = int(time.time())
         self.payload = payload
 
-    def serialize(self):
+    def to_json(self):
         return json.dumps(dict(
             type=str(self.type_),
             ts=self.ts,
@@ -29,27 +35,6 @@ class Action:
         message = json.dumps(message)
         type_ = message.pop('type')
         return cls(type_, message)
-
-
-class EmitKey:
-    def __init__(self, pipe_type: str, action_type: ActionType):
-        self.pipe_type = pipe_type
-        self.action_type = action_type
-
-
-class EmitData:
-    def __init__(self, pipe_type: str, action: Action):
-        self.pipe_type = pipe_type
-        self.action = action
-
-    def is_(self, emit_key: EmitKey):
-        return self.pipe_type == emit_key.pipe_type and self.action.type_ == emit_key.action_type
-
-    def get_key(self):
-        return EmitKey(self.pipe_type, self.action.type_)
-
-    def with_pipe_type(self, pipe_type: str):
-        return EmitData(pipe_type, self.action)
 
 
 MESSAGE = ActionType('MESSAGE')

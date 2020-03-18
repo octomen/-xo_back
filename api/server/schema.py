@@ -1,93 +1,127 @@
 # -*- coding: utf-8 -*-
 import logging
-from abc import abstractmethod
+from collections import defaultdict
 from typing import Callable, Tuple, Dict, List
 
-from api.server.action import Action
-from api.server.pipe import Pipe, PipeType, EmitKey
+from api.server.action import Action, ActionType
 
 logger = logging.getLogger(__name__)
 
 
+class DefaultImplementation:
+    pass
+
+
+class EntityType:
+    def __init__(self, name, scope):
+        self.name = name
+        self.scope = scope
+        self.implementation = DefaultImplementation
+
+    def __call__(self, implementation):
+        self.implementation = implementation
+
+    def create(self):
+        entity = self.implementation()
+        entity._self__type = self
+        return entity
+
+
 class Entity:
-    def __init__(self):
-        self._class = None
+    def __init__(self, parent, pipe):
+        self.__scope = None
+        self.parent = parent
+        self.pipe = pipe
 
-    def emit(self, action):
-        pass
-
-    def __call__(self, _class):
-        self._class = _class
-
-
-class ISchema:
-    @abstractmethod
-    def get_route(self):
-        return self.__class__.__name__.lower()
-
-    @abstractmethod
-    def create_entity(self, pipe_type: PipeType,  pipe: Pipe) -> Dict[EmitKey, List[Pipe]]:
+    def emit(self, action: Action):
         pass
 
 
-class Schema:
-    def __init__(self):
-        self.name2entities = {
-            k.lower(): v for k, v
-            in self.__class__.__dict__.items()
-            if isinstance(v, Entity)
-        }
-        self.entities2name = {v: k for k, v in self.name2entities.items()}
+class MetaSchema(type):
+    def __init__(cls, name, bases, dct):
+        cls.subscribers = defaultdict(list)
+        cls.entity_method_subscribers = defaultdict(list)
+        cls.implementation = DefaultImplementation
+        cls.entity_types = {}
 
-        self._entry_point = None
-        self._entity_factory = {}
-        self._subscribers = {}
+        print(dct)
+        for k, v in dct.get('__annotations__', {}).items():
+            if v == EntityType:
+                v = EntityType(k.lower(), cls)
+                cls.entity_types[k.lower()] = v
+                setattr(cls, k, v)
+        super().__init__(name, bases, dct)
 
-    def get_entity_name(self, entity: Entity):
-        return
 
-    def create_entity(self, pipe: Pipe):
-        pass
+class Schema(metaclass=MetaSchema):
+    def __init__(self, implementation):
+        self.__class__.implementation = implementation
 
-    def ENTRYPOINT(self, _class):
-        self._entry_point = _class
-        return _class
+    @classmethod
+    def get_route(cls):
+        return cls.__name__.lower()
 
-    def CREATE(self, entity_name: Entity) -> Callable:
-        if entity_name not in self.entities2name:
-            raise Exception(f'Such entity did not register in schema {self.__class__.__name__}')
-        logger.info(f'create entity fabric for {self.entities2name[entity_name]}')
+    @classmethod
+    def create(cls):
+        return cls.implementation()
 
-        def _wrapper(func):
-            self._entity_factory[entity_name] = func.__name__
-            return func
-        return _wrapper
+    @classmethod
+    def create_entity(cls, entity_type):
+        entity_type = entity_type.lower()
+        print(cls.entity_types)
+        if entity_type not in cls.entity_types:
+            raise Exception(f'there is not entity {entity_type} in schema {cls.__name__}')
 
-    def METHOD(self, entity: Entity, actions):
-        if isinstance(actions, Action):
-            actions = [actions]
+        entity_type = cls.entity_types[entity_type]
+        return entity_type.create()
 
-        def _wrapper(func):
-            for action in actions:
-                func.__dict__.setdefault('__actions', []).append((entity, action))
-            return func
-        return _wrapper
+    # @classmethod
+    # def handle(cls, emitter, entity_type, action):
 
-    def BIND(self, entity: Entity, actions) -> Callable:
-        if isinstance(actions, Action):
-            actions = [actions]
 
-        def _wrapper(func):
-            for action in actions:
-                self._subscribers.setdefault((entity, action.type_), []).append(func)
-            return func
-        return _wrapper
 
-    def process_entity(self, type_: str, pipe):
-        entity_type = self.name2entities.get(type_)
-        if entity_type in self._entity_factory:
-            entity = self._entity_factory[entity_type]
-            entity.entity = pipe
-            return entity
-        else:
-            return pipe
+def METHOD(entity: EntityType, actions):
+    if isinstance(actions, Action):
+        actions = [actions]
+
+    def _wrapper(func):
+        for action in actions:
+            observe_key = (entity, action.type_)
+            entity.scope.entity_method_subscribers[observe_key].append(func)
+            func.__dict__.setdefault('__actions', []).append((entity, action))
+        return func
+    return _wrapper
+
+
+def BIND(entity: EntityType, actions) -> Callable:
+    if isinstance(actions, Action):
+        actions = [actions]
+
+    def _wrapper(func):
+        for action in actions:
+            observe_key = (entity, action.type_)
+            entity.scope.subscribers[observe_key].append(func)
+        return func
+    return _wrapper
+
+
+class EmitKey:
+    def __init__(self, entity_type: EntityType, action_type: ActionType):
+        self.entity_type = entity_type
+        self.action_type = action_type
+
+
+class EmitData:
+    def __init__(self, emitter, entity_type: EntityType, action: Action):
+        self.emitter = emitter
+        self.entity_type = entity_type
+        self.action = action
+
+    def is_(self, emit_key: EmitKey):
+        return self.entity_type == emit_key.entity_type and self.action.type_ == emit_key.action_type
+
+    def get_key(self):
+        return EmitKey(self.entity_type, self.action.type_)
+
+    def with_entity_template(self, entity_type: EntityType):
+        return EmitData(entity_type, self.action)

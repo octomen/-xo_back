@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
+
+import requests
 import websockets
 
 
@@ -16,8 +18,13 @@ async def sender(websocket):
 
 
 async def hello():
-    user_uid = input('Type user uid:\n')
-    uri = "ws://127.0.0.1:8765/chat/123/user/{}".format(user_uid)
+    host = '127.0.0.1:8765'
+
+    # resp = requests.get(f'http://{host}/chat/create')
+
+    # user_uid = input('Type user uid:\n')
+    user_uid = 123
+    uri = f'ws://{host}/chat/123/user/{user_uid}'
     # uri = "ws://46.48.74.10:8000/game/123/{}".format(user_uid)
     async with websockets.connect(uri) as websocket:
         await asyncio.wait([sender(websocket), recv_printer(websocket)])

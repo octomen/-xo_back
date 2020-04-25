@@ -21,14 +21,6 @@ class User:
             task.cancel()
         self._board.remove_user(self)
 
-    async def _ping(self):
-        while True:
-            try:
-                await asyncio.sleep(1)
-                await self._websocket.ping()
-            except ConnectionClosed:
-                self._board.remove_user(self)
-
     async def _handle_recv(self):
         async for message in self._websocket:
             await self.on_receive_message(message)

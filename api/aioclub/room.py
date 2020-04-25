@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import logging
 from typing import Hashable
 
 from api.aioclub.bots import Writer, Bot
 from api.aioclub.action import Action, ActionType
 from api.aioclub.event_bus import EventBus, Subscriber
+
+log = logging.getLogger(__name__)
 
 
 class RoomWriter(Writer):
@@ -17,8 +20,7 @@ class RoomWriter(Writer):
 
 
 class Room:
-    def __init__(self, loop: asyncio.AbstractEventLoop, bus: EventBus):
-        self.loop = loop
+    def __init__(self, bus: EventBus):
         self.bus = bus
 
         # TODO: реализовать close в котором прибить таски
@@ -33,7 +35,7 @@ class Room:
     def register_bot(self, bot: Bot):
         writer = RoomWriter(bot, self.bus)
         self.tasks.append(
-            self.loop.create_task(
+            asyncio.create_task(
                 bot.receive(writer)
             )
         )
@@ -43,10 +45,8 @@ class Room:
 
 
 class RoomFactory:
-    def __init__(self, loop: asyncio.AbstractEventLoop = None, bus: EventBus = None):
-        self.loop = loop or asyncio.get_event_loop()
-        self.bus = bus or EventBus(self.loop)
-        self.bus.run()
+    def __init__(self, bus: EventBus):
+        self._bus = bus
 
     def create_room(self):
-        return Room(self.loop, self.bus)
+        return Room(self._bus)

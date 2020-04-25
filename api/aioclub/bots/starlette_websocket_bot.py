@@ -29,6 +29,9 @@ class StarletteWebSocketBot(Bot):
 
     async def send(self, action: Action):
         """Отправляет сообщения во внешний мир"""
+        if not self._is_alive:
+            log.warning('Zombie bot %s continues to receive actions', self)
+            return
         await self._websocket.send_text(action.to_json())
 
     async def receive_message(self):

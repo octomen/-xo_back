@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from api.aioclub.action import Action, ActionType
-from api.aioclub.room import RoomFactory, Room
-from api.modules.main import storage
+from api.actions import MESSAGE
+from api.aioclub.action import Action
+from api.aioclub.room import Room
 
 log = logging.getLogger(__name__)
-MESSAGE = ActionType('MESSAGE')
 
 
 class Chat:
@@ -19,14 +18,7 @@ class Chat:
         self.room.register_bot(bot)
         self.room.subscribe(bot, MESSAGE, self.say)
 
-    async def say(self, action: Action):
-        print(action)
-
-
-def get_or_create(chat_uid: str) -> Chat:
-    game = storage.get(chat_uid)
-    if not game:
-        return storage.set(chat_uid, Chat(
-            RoomFactory().create_room()
-        ))
-    return game
+    async def say(self, emit_bot, action: Action):
+        for bot in self.bots.values():
+            if bot != emit_bot:
+                await bot.send(action)

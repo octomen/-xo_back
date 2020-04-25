@@ -2,6 +2,7 @@
 import asyncio
 import json
 
+import requests
 import websockets
 
 
@@ -18,10 +19,15 @@ async def sender(websocket):
 
 
 async def hello():
-    host = '127.0.0.1:8000'
+    host = '0.0.0.0:8000'
 
-    user_uid = 123
-    uri = f'ws://{host}/chat/123/{user_uid}'
+    chat_uid = input('input chat uid or do nothing:')
+    if not chat_uid:
+        chat_uid = requests.post(f'http://{host}/chat').json()['data']['uid']
+        print(f'New chat uid: {chat_uid}')
+
+    user_uid = int(input('your no, please: '))
+    uri = f'ws://{host}/chat/{chat_uid}/{user_uid}'
     async with websockets.connect(uri) as websocket:
         await asyncio.wait([sender(websocket), recv_printer(websocket)])
 

@@ -15,6 +15,7 @@ EMITTER = object()
 class BotForTest(Bot):
     def __init__(self, numder):
         self.numder = numder
+        super().__init__()
 
     async def receive(self, writer: Writer):
         for i in range(4):
@@ -29,7 +30,7 @@ class Log:
     def __init__(self):
         self.data = []
 
-    async def log_one(self, action):
+    async def log_one(self, _, action):
         self.data.append(action)
         await asyncio.sleep(0.01)
 

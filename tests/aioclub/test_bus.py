@@ -15,7 +15,7 @@ class EmitterForTest:
         self.delay = delay
         self.counter_name = counter_name
 
-    async def say(self, data):
+    async def say(self, _, data):
         data.payload[self.counter_name] -= 1
         data.payload['log'].append(self.counter_name)
         await asyncio.sleep(self.delay)

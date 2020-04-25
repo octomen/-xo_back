@@ -10,8 +10,7 @@ from api.aioclub.action import ActionType, Action
 
 logger = logging.getLogger(__name__)
 
-# TODO: Subscriber еще должен принимать emitter
-Subscriber = Callable[[Action], Awaitable]
+Subscriber = Callable[[Hashable, Action], Awaitable]
 
 
 class IEventBus(ABC):
@@ -40,7 +39,7 @@ class EventBus(IEventBus):
     _subscriptions: Dict[Hashable, Dict[ActionType, Set[Subscriber]]]
 
     def __init__(self, loop: asyncio.AbstractEventLoop = None):
-        self._loop = loop or asyncio.get_event_loop()
+        self._task_generator = loop or asyncio
         self._tasks = deque()
         self._is_working = False
         self._cleaner = None
@@ -53,7 +52,7 @@ class EventBus(IEventBus):
 
     def run(self):
         self._is_working = True
-        self._cleaner = self._loop.create_task(self._task_cleaner())
+        self._cleaner = self._task_generator.create_task(self._task_cleaner())
 
     def cancel(self):
         self._is_working = False
@@ -63,6 +62,7 @@ class EventBus(IEventBus):
             self._cleaner.cancel()
 
     async def emit(self, emitter: Hashable, data: Action):
+        logger.debug('emit data=%s by %s', data, emitter)
         if not self._is_working:
             return
 
@@ -74,7 +74,8 @@ class EventBus(IEventBus):
             return
 
         for subscriber in self._subscriptions[emitter][action]:
-            self._tasks.append(self._loop.create_task(subscriber(data)))
+            logger.debug('subscriber %s received data', subscriber)
+            self._tasks.append(self._task_generator.create_task(subscriber(emitter, data)))
         await asyncio.sleep(0)
 
     def subscribe(self, emitter: Hashable, action: ActionType, subscriber: Subscriber):

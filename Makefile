@@ -1,15 +1,12 @@
 .PHONY: install test up
 
-POETRY_RUN=venv/bin/poetry run
+POETRY_RUN=poetry run
 
 install:
-	${RM} -R venv
-	python3 -m venv venv
-	venv/bin/pip install poetry
-	venv/bin/poetry install
+	${POETRY_RUN} install
 
 test:
-	${POETRY_RUN} pytest tests/
+	${POETRY_RUN} pytest -sv tests/
 
 up:
-	${POETRY_RUN} uvicorn api.routers.game_router:app
+	${POETRY_RUN} uvicorn --host 0.0.0.0 --port 8000 api.app:app

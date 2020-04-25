@@ -31,23 +31,39 @@ class Action:
         self.payload = payload
 
     def to_json(self):
-        return json.dumps(dict(
+        return json.dumps(self.to_dict())
+
+    def to_dict(self):
+        return dict(
             type=str(self.action),
             ts=self.ts,
             payload=self.payload,
-        ))
+        )
 
     @classmethod
     def from_json(cls, message):
         try:
             message = json.loads(message)
-            return cls(
-                action=ActionType(message['type']),
-                payload=message['payload'],
-                ts=message.get('ts'),
-            )
+            return cls.from_dict(message)
         except Exception as e:
+            raise MessageParseException(str(e))
+
+    @classmethod
+    def from_dict(cls, data):
+        try:
+            return cls(
+                    action=ActionType(data['type']),
+                    payload=data['payload'],
+                    ts=data.get('ts'),
+
+                )
+        except KeyError as e:
             raise MessageParseException(str(e))
 
     def __repr__(self):
         return f'<ActionData action={self.action} ts={self.ts} payload={self.payload}>'
+
+    def __eq__(self, other):
+        if not isinstance(other, Action):
+            return False
+        return self.to_dict() == other.to_dict()

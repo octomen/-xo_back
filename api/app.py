@@ -15,7 +15,8 @@ def create_app(bus=None):
     chat_router = routers.chat.Router(storage, RoomFactory(bus))
     chat_router.register_routes(app)
 
-    routers.game.register_routes(app)
+    game_router = routers.game.Router(storage, RoomFactory(bus))
+    game_router.register_routes(app)
 
     @app.on_event('startup')
     async def startup_event():

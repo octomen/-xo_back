@@ -5,6 +5,7 @@ import time
 from api.aioclub.exceptions import MessageParseException
 
 
+# TODO: можно навернуть пудантик в де/сереализацию
 class ActionType:
     def __init__(self, name):
         self.name = name

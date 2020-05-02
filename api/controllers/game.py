@@ -1,26 +1,33 @@
-import asyncio
 import logging
 from typing import List, Optional, Set
 
+from api.aioclub.action import ActionType, Action
 from api.modules.main import storage
 from . import Board, SignEnum, User
+from .board import STATE_CHANGE, GAME_OVER
+from ..actions import DISCONNECT
+from ..aioclub.room import Room
 
 log = logging.getLogger(__name__)
 
+STATE = ActionType('STATE')
+MOVE = ActionType('MOVE')
+
 
 class Game:
-    def __init__(self):
+    def __init__(self, room: Room):
+        self.room = room
         self._gamer_count = 2
         self._gamers: List[Optional[User]] = [None] * self._gamer_count
         self._gamer_bind = {}
         self._watchers: Set[User] = set()
-        self._board: Board = Board()
-        self._board.on_state_change(self.state_notify)
-        self._board.on_game_over(self.on_game_over)
+        self._board: Board = Board(self.room)
+        self.room.subscribe(self._board, STATE_CHANGE, self.state_notify)
+        self.room.subscribe(self._board, GAME_OVER, self.on_game_over)
 
     async def add_gamer(self, user: User):
         self._add_gamer(user)
-        await self.state_notify(self._board)
+        await self.state_notify()
 
     def _add_gamer(self, user: User):
         log.debug(self._gamers)
@@ -42,32 +49,40 @@ class Game:
                     break
                 start = self._gamers.index(None, start)
         self._gamers[self._gamer_bind[user.uid]] = user
-        user.on_action(self.on_user_action)
+        self.room.subscribe(user, MOVE, self.on_user_action)
 
     def add_watcher(self, user: User):
         self._watchers.add(user)
-        user.on_disconnect(self.disconnect_user)
+        self.room.subscribe(user, DISCONNECT, self.disconnect_user)
 
-    def kick_user(self, user: User):
-        self._gamer_bind.pop(user.uid)
-        self.disconnect_user(user)
-
-    def disconnect_user(self, user: User):
+    async def disconnect_user(self, user: User, _=None):
         try:
             self._watchers.remove(user)
             self._gamers[self._gamers.index(user)] = None
         except ValueError:
             pass
 
-    async def on_user_action(self, user: User, point: tuple):
-        await self._board.move(SignEnum.X if self._gamers.index(user) == 0 else SignEnum.O, point)
+    async def on_user_action(self, user: User, action: Action):
+        point = action.payload['point']
+        await self._board.move(
+            SignEnum.X if self._gamers.index(user) == 0 else SignEnum.O,
+            point,
+        )
 
-    async def state_notify(self, board: Board):
-        await asyncio.wait([u.send(board.get_state()) for u in self._watchers])  # TODO: serialize board state
+    async def state_notify(self, _board=None, _action=None):
+        state = STATE(self._board.get_state())
+        for u in self._watchers:
+            await u.send(state)
 
-    async def on_game_over(self, board: Board, sign, result):
-        msg = {'winner': sign if result is board.POSITIVE else 'nobody'}
-        await asyncio.wait([u.send(msg) for u in self._watchers])  # TODO: serialize board state
+    async def on_game_over(self, board: Board, action: Action):
+        sign = action.payload['sign']
+        result = action.payload['result']
+
+        action = GAME_OVER({
+            'winner': sign if result.payload is board.POSITIVE else 'nobody'
+        })
+        for u in self._watchers:
+            await u.send(action)
 
 
 def get_or_create(game_uid: str) -> Game:

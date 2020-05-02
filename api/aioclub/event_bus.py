@@ -3,14 +3,15 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from typing import Awaitable, Callable, Dict, Hashable, Set
+from typing import Awaitable, Callable, Dict, Hashable, Set, Any
 
 from api.aioclub.action import ActionType, Action
 
 
 logger = logging.getLogger(__name__)
 
-Subscriber = Callable[[Hashable, Action], Awaitable]
+# TODO: попробовать добавить возможность скормить синхронную функцию
+Subscriber = Callable[[Any, Action], Awaitable]
 
 
 class IEventBus(ABC):

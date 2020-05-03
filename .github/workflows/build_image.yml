@@ -1,0 +1,60 @@
+name: XO CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Test xo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 2
+      - uses: azure/docker-login@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: build
+        run: |
+          docker pull octoman/xo_back
+          docker build --file=docker/xo/Dockerfile . -t octoman/xo_back --cache-from=octoman/xo_back
+
+      - name: test
+        run: |
+          docker run octoman/xo_back poetry run flake8
+          docker run octoman/xo_back poetry run pytest
+
+  deploy:
+    name: Deploy xo
+    if: ${{ github.ref == 'refs/heads/release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 2
+      - uses: azure/docker-login@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: build
+        run: |
+          docker pull octoman/xo_back
+          docker build --file=docker/xo/Dockerfile . -t octoman/xo_back --cache-from=octoman/xo_back
+
+      - name: push
+        run: |
+          docker push octoman/xo_back
+
+      - name: delivery
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          passphrase: ${{ secrets.DEPLOY_PASSPHRASE }}
+          script: |
+            cd xo_back && ./bin/deploy_stand.sh ${{ github.sha }}

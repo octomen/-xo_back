@@ -1,12 +1,18 @@
 .PHONY: install test up
 
-POETRY_RUN=poetry run
-
-install:
-	${POETRY_RUN} install
+COMPORE=docker-compose -f docker/docker-compose.yaml
+RUN_COMMAND=${COMPORE} run xo poetry run
 
 test:
-	${POETRY_RUN} pytest -sv tests/
+	${RUN_COMMAND} pytest
+
+flake8:
+	${RUN_COMMAND} flake8
+
+checks: flake8 test
 
 up:
-	${POETRY_RUN} uvicorn --host 0.0.0.0 --port 8000 api.app:app
+	${COMPORE} up --build
+
+build:
+	${COMPORE} build

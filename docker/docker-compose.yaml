@@ -1,0 +1,11 @@
+version: '2'
+services:
+  xo:
+    build:
+      context: ../
+      dockerfile: docker/xo/Dockerfile
+    image: octoman/xo_back
+    environment:
+      - PORT=8001
+    ports:
+    - 8000:8001

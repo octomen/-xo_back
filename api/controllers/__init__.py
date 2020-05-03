@@ -1,3 +1,3 @@
-from .board import Board, SignEnum
-from .user import User
-from .game import Game
+from .board import Board, SignEnum  # noqa
+from .user import User  # noqa
+from .game import Game  # noqa

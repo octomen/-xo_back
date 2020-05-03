@@ -5,7 +5,7 @@ from typing import Dict
 import pytest
 from fastapi.testclient import TestClient
 from starlette.testclient import WebSocketTestSession
-from starlette.websockets import WebSocket, WebSocketState, WebSocketDisconnect
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from api.actions import ERROR
 from api.aioclub.action import Action

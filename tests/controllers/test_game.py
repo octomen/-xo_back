@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import pytest
+# import pytest
 
 # from api.controllers.game import get_current_sign, X, O, N
 

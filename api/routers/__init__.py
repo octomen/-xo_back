@@ -1,2 +1,2 @@
-from . import chat
-from . import game
+from . import chat  # noqa
+from . import game  # noqa
